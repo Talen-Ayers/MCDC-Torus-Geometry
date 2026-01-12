@@ -48,9 +48,9 @@ def evaluate(particle_container, surface):
 
     #Check if the particle is above or below the centerline of the torus and use the appropriate sign for the square root
     return (
-        C + sqrt( r**2 - ( sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
+        C + math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
         if z >= C else
-        C - sqrt( r**2 - ( sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
+        C - math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
     )
 
 
@@ -107,9 +107,9 @@ def get_normal_component(particle_container, surface):
     C = surface["C"]
 
     # Surface normal
-    dx = 
+    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - (R**2))) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
     dy = 
-    dz = 
+    dz = -1
     norm = (dx**2 + dy**2 + dz**2) ** 0.5
     nx = dx / norm
     ny = dy / norm
