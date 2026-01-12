@@ -73,9 +73,9 @@ def reflect(particle_container, surface):
     C = surface["C"]
 
     # Surface normal
-    dx = 
-    dy = 
-    dz = 
+    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    dy = -( ((y-B) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    dz = -1
     norm = (dx**2 + dy**2 + dz**2) ** 0.5
     nx = dx / norm
     ny = dy / norm
@@ -107,8 +107,9 @@ def get_normal_component(particle_container, surface):
     C = surface["C"]
 
     # Surface normal
-    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - (R**2))) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
-    dy = 
+    #The derivative with respect to x and y are the same excpt for the first term (x-A) or (y-B)
+    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    dy = -( ((y-B) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
     dz = -1
     norm = (dx**2 + dy**2 + dz**2) ** 0.5
     nx = dx / norm
