@@ -30,7 +30,9 @@ def evaluate(particle_container, surface):
     Checking to see if the particle is on the surface in question
 
     Returns: (float)
-    If the return is 0, the particle occupies the exact space of the shape
+    - If the return is 0, the particle occupies the exact space of the torus
+    - If the return is negative, the particle is outside of the torus
+    - If the return is positive, the particle is inside the torus
     """
   
     particle = particle_container[0]
@@ -48,9 +50,9 @@ def evaluate(particle_container, surface):
 
     # Check if the particle is above or below the centerline of the torus and use the appropriate sign for the square root
     return (
-        C + math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
+        (C + math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z)
         if z >= C else
-        C - math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
+        -(C - math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z)
     )
 
 
