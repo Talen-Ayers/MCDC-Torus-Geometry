@@ -46,7 +46,7 @@ def evaluate(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    #Check if the particle is above or below the centerline of the torus and use the appropriate sign for the square root
+    # Check if the particle is above or below the centerline of the torus and use the appropriate sign for the square root
     return (
         C + math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z
         if z >= C else
@@ -72,11 +72,20 @@ def reflect(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    # Surface normal
-    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    # Surface derivatives
+    # The derivative with respect to x and y are the same excpt for the first term (x-A) or (y-B)
+    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) ))0 )
     dy = -( ((y-B) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
     dz = -1
-    norm = (dx**2 + dy**2 + dz**2) ** 0.5
+
+    # If the particle is below the centerline of the torus, it will be interacting with the bottom surface
+    if z <= C:
+        # The only difference between the derivatives of both halves of the torus is the multiplication of a negative 1
+        dx *= -1
+        dy *= -1
+
+    # Surface Normal
+    norm = (dx**2 + dy**2 + dz**2)**0.5
     nx = dx / norm
     ny = dy / norm
     nz = dz / norm
@@ -106,12 +115,20 @@ def get_normal_component(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    # Surface normal
-    #The derivative with respect to x and y are the same excpt for the first term (x-A) or (y-B)
-    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    # Surface derivatives
+    # The derivative with respect to x and y are the same excpt for the first term (x-A) or (y-B)
+    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) ))0 )
     dy = -( ((y-B) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
     dz = -1
-    norm = (dx**2 + dy**2 + dz**2) ** 0.5
+
+    # If the particle is below the centerline of the torus, it will be interacting with the bottom surface
+    if z <= C:
+        # The only difference between the derivatives of both halves of the torus is the multiplication of a negative 1
+        dx *= -1
+        dy *= -1
+
+    # Surface Normal
+    norm = (dx**2 + dy**2 + dz**2)**0.5
     nx = dx / norm
     ny = dy / norm
     nz = dz / norm
