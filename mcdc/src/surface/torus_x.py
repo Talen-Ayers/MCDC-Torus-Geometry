@@ -11,9 +11,11 @@ Solving for z:
 z = C (+ or -) sqrt( r^2 - ( sqrt( (x - A)^2 + (y - B)^2) - R )^2 )
 """
 
-
-
 import math
+
+import numpy as np
+
+import numpy.polynomial.polynomial as poly
 
 from numba import njit
 
@@ -21,7 +23,6 @@ from mcdc.constant import (
     COINCIDENCE_TOLERANCE,
     INF,
 )
-
 
 @njit
 def evaluate(particle_container, surface):
@@ -31,8 +32,8 @@ def evaluate(particle_container, surface):
 
     Returns: (float)
     - If the return is 0, the particle occupies the exact space of the torus
-    - If the return is negative, the particle is outside of the torus
-    - If the return is positive, the particle is inside the torus
+    - If the return is INF, the particle is not in the region of the torus
+    - If the return is positive or negative, the particle is above or below the torus in the z
     """
   
     particle = particle_container[0]
@@ -48,6 +49,10 @@ def evaluate(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
+    #This is the same issue that the reflection and normal component functions had, if the particle is outside the torus space
+    if (r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2) < 0:
+        return INF
+
     # Check if the particle is above or below the centerline of the torus and use the appropriate sign for the square root
     return (
         (C + math.sqrt( r**2 - ( math.sqrt( (x - A)**2 + (y - B)**2) - R )**2 ) - z)
@@ -56,6 +61,8 @@ def evaluate(particle_container, surface):
     )
 
 
+# Due to the sqrt in the derivative functions, if the particle is not in the x-y space where the torus has z values, it will result in complex numbers
+# Specificaly the term: math.sqrt(r**2 - (R - inv_root)**2), where inverse root = math.sqrt((A-x)**2 + (B-y)**2)
 @njit
 def reflect(particle_container, surface):
     particle = particle_container[0]
@@ -74,10 +81,30 @@ def reflect(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    # Surface derivatives
-    # The derivative with respect to x and y are the same excpt for the first term (x-A) or (y-B)
-    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) ))0 )
-    dy = -( ((y-B) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    #Spliting up the derivative math for readability into numerators and denominators
+    inv_root = math.sqrt((A-x)**2 + (B-y)**2)
+
+    x_num = (x-A) * (inv_root - R)
+    x_den = inv_root * (math.sqrt(r**2 - (R - inv_root)**2))
+    y_num = (y-B) * (inv_root - R)
+    y_den = (math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - inv_root)**2))
+
+    # Surface derivatives, the if statement prevents a divide by 0 error
+    # The derivative with respect to x and y are the same except for the first term (x-A) or (y-B)
+    if x_den == 0 and x_num == 0:
+        dx = 0
+    elif x_den == 0:
+        dx = -(INF)
+    else:
+        dx = -(x_num / x_den)
+
+    if y_den == 0 and y_num == 0:
+        dy = 0
+    elif y_den == 0:
+        dy = -(INF)
+    else:
+        dy = -(y_num / y_den)
+
     dz = -1
 
     # If the particle is below the centerline of the torus, it will be interacting with the bottom surface
@@ -87,7 +114,7 @@ def reflect(particle_container, surface):
         dy *= -1
 
     # Surface Normal
-    norm = (dx**2 + dy**2 + dz**2)**0.5
+    norm = math.sqrt(dx**2 + dy**2 + dz**2)
     nx = dx / norm
     ny = dy / norm
     nz = dz / norm
@@ -98,7 +125,15 @@ def reflect(particle_container, surface):
     particle["uy"] -= c * ny
     particle["uz"] -= c * nz
 
+    print("Directions: ", ux, uy, uz)
+    print("Derivitive Magnitude: ", norm)
+    print("Derivitives: ", dx, dy, dz)
+    print("C: ", c)
+    print("Normals: ", nx, ny, nz)
+    print(particle["ux"], particle["uy"], particle["uz"])
 
+# Due to the sqrt in the derivative functions, if the particle is not in the x-y space where the torus has z values, it will result in complex numbers
+# Specificaly the term: math.sqrt(r**2 - (R - inv_root)**2), where inverse root = math.sqrt((A-x)**2 + (B-y)**2)
 @njit
 def get_normal_component(particle_container, surface):
     particle = particle_container[0]
@@ -117,10 +152,30 @@ def get_normal_component(particle_container, surface):
     B = surface["B"]
     C = surface["C"]
 
-    # Surface derivatives
-    # The derivative with respect to x and y are the same excpt for the first term (x-A) or (y-B)
-    dx = -( ((x-A) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) ))0 )
-    dy = -( ((y-B) * (math.sqrt((A-x)**2 + (B-y)**2) - R)) / ((math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - (math.sqrt((A-x)**2 + (B-y)**2)))**2) )) )
+    #Spliting up the derivative math for readability into numerators and denominators (inv is short for inverse)
+    inv_root = math.sqrt((A-x)**2 + (B-y)**2)
+
+    x_num = (x-A) * (inv_root - R)
+    x_den = inv_root * (math.sqrt(r**2 - (R - inv_root)**2))
+    y_num = (y-B) * (inv_root - R)
+    y_den = (math.sqrt((A-x)**2 + (B-y)**2)) * (math.sqrt(r**2 - (R - inv_root)**2))
+
+    # Surface derivatives, the if statement prevents a divide by 0 error
+    # The derivative with respect to x and y are the same except for the first term (x-A) or (y-B)
+    if x_den == 0 and x_num == 0:
+        dx = 0
+    elif x_den == 0:
+        dx = -(INF)
+    else:
+        dx = -(x_num / x_den)
+
+    if y_den == 0 and y_num == 0:
+        dy = 0
+    elif y_den == 0:
+        dy = -(INF)
+    else:
+        dy = -(y_num / y_den)
+
     dz = -1
 
     # If the particle is below the centerline of the torus, it will be interacting with the bottom surface
@@ -130,17 +185,17 @@ def get_normal_component(particle_container, surface):
         dy *= -1
 
     # Surface Normal
-    norm = (dx**2 + dy**2 + dz**2)**0.5
+    norm = math.sqrt(dx**2 + dy**2 + dz**2)
     nx = dx / norm
     ny = dy / norm
     nz = dz / norm
 
     return nx * ux + ny * uy + nz * uz
 
-
 @njit
 def get_distance(particle_container, surface):
     particle = particle_container[0]
+    
     # Particle coordinate
     x = particle["x"]
     y = particle["y"]
@@ -150,70 +205,51 @@ def get_distance(particle_container, surface):
     uz = particle["uz"]
 
     # Surface coefficients
+    R = surface["R"]
+    r = surface["r"]
     A = surface["A"]
     B = surface["B"]
     C = surface["C"]
-    D = surface["D"]
-    E = surface["E"]
-    F = surface["F"]
-    G = surface["G"]
-    H = surface["H"]
-    I = surface["I"]
 
-    # Coincident?
-    f = evaluate(particle_container, surface)
-    coincident = abs(f) < COINCIDENCE_TOLERANCE
-    if coincident:
-        # Moving away or tangent?
-        if (
-            get_normal_component(particle_container, surface)
-            >= 0.0 - COINCIDENCE_TOLERANCE
-        ):
-            return INF
+    # Shifting the origin point of the particle into the torus space, and treating the torus as centered on (0,0,0)
+    x -= A
+    y -= B
+    z -= C
 
-    # Quadratic equation constants
-    a = (
-        A * ux * ux
-        + B * uy * uy
-        + C * uz * uz
-        + D * ux * uy
-        + E * ux * uz
-        + F * uy * uz
-    )
-    b = (
-        2 * (A * x * ux + B * y * uy + C * z * uz)
-        + D * (x * uy + y * ux)
-        + E * (x * uz + z * ux)
-        + F * (y * uz + z * uy)
-        + G * ux
-        + H * uy
-        + I * uz
-    )
-    c = f
+    # Dot products that come up frequently in the torus-ray intersection equation
+    G = ux*ux + uy*uy + uz*uz
+    H = 2.0 * (x*ux + y*uy + z*uz)
+    I = x*x + y*y + z*z
 
-    determinant = b * b - 4.0 * a * c
+    J = ux*ux + uy*uy
+    K = 2.0 * (x*ux + y*uy)
+    L = x*x + y*y
 
-    # Roots are complex : no intersection
-    # Roots are identical: tangent
-    # ==> return huge number
-    if determinant <= 0.0:
+    # Quartic coefficients from substituting (i = origin_i + direction_i * t) into each axis for i (x,y,z)
+    a4 = G * G
+    a3 = 2.0 * G * H
+    a2 = H*H + 2.0*G*(I + R*R - r*r) - 4.0*R*R*J
+    a1 = 2.0*H*(I + R*R - r*r) - 4.0*R*R*K
+    a0 = (I + R*R - r*r)**2 - 4.0*R*R*L
+
+    # Use the numpy polynomial library to solve the quartic above for t
+    coefficients = [a0, a1, a2, a3, a4]
+    roots = np.ndarray.tolist(poly.polyroots(coefficients))
+    real_roots = []
+
+    # Filtering the roots for real solutions
+    for solution in roots:
+        if isinstance(solution, complex):
+            pass
+        elif solution >= 0:
+            real_roots.append(solution)
+
+    if len(real_roots) == 0: # Ending the calculation if there are no valid solutions
         return INF
-    else:
-        # Get the roots
-        denom = 2.0 * a
-        sqrt = math.sqrt(determinant)
-        root_1 = (-b + sqrt) / denom
-        root_2 = (-b - sqrt) / denom
 
-        # Coincident?
-        if coincident:
-            return max(root_1, root_2)
+    # Using the smallest root to get the value of t at the first point of intersection
+    # If the direction vector is normalized, the distance to intersection is just the value of t
+    min_t = min(real_roots)
+    ray_length = math.sqrt(G)
 
-        # Negative roots, moving away from the surface
-        if root_1 < 0.0:
-            root_1 = INF
-        if root_2 < 0.0:
-            root_2 = INF
-
-        # Return the smaller root
-        return min(root_1, root_2)
+    return min_t * ray_length
